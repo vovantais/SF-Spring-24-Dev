@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+
+    <title>Salesforse Developer Guide to the Spring 24</title>
+
+    <meta
+      name="description"
+      content="A framework for easily creating beautiful presentations using HTML"
+    />
+    <meta name="author" content="Hakim El Hattab" />
+
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="stylesheet" href="dist/reset.css" />
+    <link rel="stylesheet" href="dist/reveal.css" />
+    <link rel="stylesheet" href="dist/theme/black.css" id="theme" />
+
+    <!-- Theme used for syntax highlighting of code -->
+    <link rel="stylesheet" href="plugin/highlight/monokai.css" />
+  </head>
+
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <section>
+          <a href="https://developer.salesforce.com/blogs/2024/01/spring24-developers">
+            <img
+              src="./assets/Spring24Release.webp"
+              alt="logo-sf"
+              style="
+                height: 300px;
+                margin: 0 auto 4rem auto;
+                background: transparent;
+              "
+              class="demo-l@go"
+            />
+          </a>
+          <h3>Salesforce Developer’s Guide to the Spring ’24 Release</h3>
+          <p>
+            <small
+              >Created by
+              <a href="https://github.com/vovantais" target="_blank">
+                Vladimir Gedeiko
+                <img
+                  src="./assets/github-icon.png"
+                  style="
+                    height: 30px;
+                    margin: 0 auto 4rem auto;
+                    background: transparent;
+                  " /></a
+            ></small>
+          </p>
+        </section>
+
+        <section>
+          <h2>Today we will discuss changes in:</h2>
+          <ul>
+            <li class="fragment">Apex</li>
+            <li class="fragment">LWC </li>
+            <li class="fragment">Development environments</li>
+            <li class="fragment">Platform development tools</li>
+            <li class="fragment">Data Cloud highlights</li>
+            <li class="fragment">APIs & integrations</li>
+          </ul>
+        </section>
+
+        <section>
+          <section data-auto-animate>
+            <p
+              data-id="text-props"
+              style="
+                background: #555;
+                line-height: 1em;
+                letter-spacing: 0em;
+                margin-top: 130px;
+              "
+            >
+            Apex
+            </p>
+          </section>
+          <section data-auto-animate>
+            <p
+              data-id="text-props"
+              style="
+                background: #555;
+                line-height: 3em;
+                letter-spacing: 0.2em;
+                margin-top: 130px;
+              "
+            >
+            Apex
+            </p>
+          </section>
+          <img src="./assets/apex.png"  alt="apex" />
+        </section>
+
+        <section>
+          <h5>Null coalescing operator 😃</h5>
+          <p style="font-size: 28px;">
+            The new null coalescing operator (??) simplifies code that has verbose null checks. For example, instead of:
+          </p>
+          <pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+            Integer anInteger;
+            Integer notNullReturnValue;
+            if (anInteger != null) {
+              notNullReturnValue = anInteger;
+            } else {
+              notNullReturnValue = 100;
+            }
+                </code></pre>
+           <p>You can simplify to:</p>  
+           <pre data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+            Integer anInteger;
+            Integer notNullReturnValue = anInteger ?? 100;
+                </code></pre>   
+        </section>
+
+        <section data-background-gradient="linear-gradient(to bottom, #783b95, rgb(126, 196, 255))">
+          <h5><a href="https://help.salesforce.com/s/articleView?id=release-notes.rn_apex_uuid.htm&release=248&type=5" target="_blank">UUID system class</a></h5>
+          <p class="fragment" style="font-size: 26px;">
+            Use the new UUID class to generate a version 4 universally unique identifier (UUID). The UUID is generated using a cryptographically strong pseudo-random number generator and is represented as 32 hexadecimal values.
+            How: To generate a UUID and perform operations on a UUID instance, use these methods in the UUID class.
+          </p>
+          <pre style="width: 1100px; " class="fragment" data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+            randomUUID()//Randomly generates a UUID uniquely identifies an object.
+            equals(obj)//Compares the UUID instance with the specified object. 
+            hashcode()//Returns the hashcode corresponding to the UUID instance.
+            fromString(string)//Returns a UUID instance from a string representation of a UUID.
+            toString()//Returns the string representation of the UUID instance.
+                </code></pre>
+
+                <pre style="width: 1100px;" class="fragment" data-id="code-animation"><code class="java" data-trim data-line-numbers>
+                  UUID randomUuid = UUID.randomUUID();
+                  // Prints the UUID string that was randomly generated
+                  system.debug(randomUuid);
+                  
+                  String uuidStr = randomUUID.toString();
+                  
+                  UUID fromStr = UUID.fromString(uuidStr);
+                  
+                  Assert.areEqual(randomUuid, fromStr);
+                      </code></pre>
+        </section>
+
+        <section>
+          <h5><a href="https://help.salesforce.com/s/articleView?id=release-notes.rn_apex_SavepointCallouts.htm&release=248&type=5" target="_blank">Make Callouts After Rolling Back DML and Releasing Savepoints</a></h5>
+          <p style="font-size: 24px;">
+            Roll back all uncommitted DML by using a savepoint. Then use the new Database.releaseSavepoint method to explicitly release savepoints before making a desired callout. Previously, callouts after creating savepoints resulted in a CalloutException regardless of whether there was uncommitted DML or the changes were rolled back to a savepoint. 
+          </p>
+          <p style="font-size: 26px;">How: To allow callouts, roll back all savepoints and explicitly release them. In this example, the makeACallout() callout succeeds because the uncommitted DML is rolled back and the savepoint is released.</p>
+          <pre style="width: 1000px;" data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+            Savepoint sp = Database.setSavepoint();
+            try {
+            //Try a database operation
+            insert new Account(name='Foo');
+            integer bang = 1 / 0;
+            } catch (Exception ex) {
+            Database.rollback(sp);
+            Database.releaseSavepoint(sp); // Also releases any savepoints created after 'sp'
+            makeACallout(); // Callout is allowed because uncommitted work is rolled back and savepoints are released
+            }
+                </code></pre>       
+        </section>
+
+        <section>
+          <p style="font-size: 22px;">In this example, the savepoint isn’t released before making the callout. The CalloutException informs you that you must release all active savepoints before making the callout.</p>  
+          <pre style="width: 1000px;" data-id="code-animation"><code class="js" data-trim data-line-numbers>
+           Savepoint sp = Database.setSavepoint();
+           try {
+               makeACallout(); 
+           } catch (System.CalloutException ex) {
+               Assert.isTrue(ex.getMessage().contains('All active Savepoints must be released before making callouts.'));
+           }
+               </code></pre>   
+          <p style="font-size: 24px;">In this example, DML is pending when the callout is made. The CalloutException informs you that you must roll back the transaction before the callout is made or the transaction must be committed.</p>  
+          <pre style="width: 1000px;" data-id="code-animation"><code class="js" data-trim data-line-numbers>
+           Savepoint sp = Database.setSavepoint();
+           insert new Account(name='Foo');
+           Database.releaseSavepoint(sp);
+           try {
+               makeACallout(); 
+           } catch (System.CalloutException ex) {
+               Assert.isTrue(ex.getMessage().contains('You have uncommitted work pending. Please commit or rollback before calling out.'));
+           }
+               </code></pre>        
+       </section>
+
+        <section>
+          <p>Two new developer preview features are available for feedback. These features are currently in developer preview only — do not use them in production apps yet. </p>
+          <ul>
+            <li class="fragment"><a href="https://help.salesforce.com/s/articleView?id=release-notes.rn_apex_compression.htm&release=248&type=5" target="_blank">Compress and Extract Zip Files in Apex</a></li>
+            <li class="fragment"><a href="https://help.salesforce.com/s/articleView?id=release-notes.rn_apex_formulaeval.htm&release=248&type=5" target="_blank">Evaluate Dynamic Formulas in Apex</a></li>
+          </ul>
+        </section>
+
+        <!-- Example of nested vertical slides -->
+
+        <section>
+          <section data-auto-animate>
+            <p
+            data-id="text-props"
+            style="
+              background: #555;
+              line-height: 1em;
+              letter-spacing: 0em;
+              margin-top: 130px;
+            "
+            >
+            LWC
+            </p>
+          </section>
+          <section data-auto-animate>
+            <p
+            data-id="text-props"
+            style="
+              background: #555;
+              line-height: 2em;
+              letter-spacing: 0.2em;
+              margin-top: 130px;
+            "
+            >
+            LWC
+            </p>
+          </section>
+          <img src="./assets/lwc.png" height="330px" alt="LWC" />
+        </section>
+
+        <section>
+          <h4>
+            <a href="https://help.salesforce.com/s/articleView?id=release-notes.rn_lwc_workspaceAPI.htm&release=248&type=5" target="_blank"> Lightning Web Components Workspace API</a>
+          </h4>
+          <section data-auto-animate>
+            <ul style="font-size: 28px;">
+              <li>Making it easy to manage tabs and subtabs in Lightning Console apps with Lightning Web Components. Previously, only Aura components were supported.
+              </li>
+              <li>How: Import the lightning/platformWorkspaceApi module to access the LWC Workspace API methods, wire adapters, and event-based APIs via Lightning Message Service.</li>
+            </ul>
+            <pre style="width:1000px" data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+              closeTab()//Closes a workspace tab or subtab.
+              disableTabClose()//Prevents a workspace tab or subtab from closing.
+              focusTab()//Focuses a workspace tab or subtab.
+              getAllTabInfo()//Returns information about all open tabs.
+              getFocusedTabInfo()//Returns information about the focused workspace tab or subtab.
+              getTabInfo()//Returns information about the specified tab.
+              openSubtab()//Opens a subtab within a workspace tab. If the subtab is already open, the subtab is focused.
+              openTab()//Opens a new workspace tab. If the tab is already open, the tab is focused.
+              refreshTab()//Refreshes a workspace tab or a subtab specified by the tab ID.
+              setTabHighlighted()//Highlights the specified tab with a different background color and a badge. Tab highlights don’t persist after reloading a Lightning console app.
+              setTabIcon()//Sets the icon and alternative text of the specified tab.
+              setTabLabel()//Sets the label of the specified tab.
+                  </code></pre>
+          </section>
+        </section>
+
+        <section>
+          <h4>
+            <a href="https://help.salesforce.com/s/articleView?id=release-notes.rn_lwc_record_picker_ga.htm&release=248&type=5" target="_blank">Lightning Record Picker</a>
+          </h4>
+          <section data-auto-animate>
+            <ul style="font-size: 22px;">
+              <li>Use the lightning-record-picker component in a Salesforce application so that desktop and mobile users can quickly find and select Salesforce records. Configure the component’s behavior and presentation, and enable filtering so that users can retrieve and display precisely the records that they want. This feature, now generally available, includes some changes since the last release. You can now retrieve up to 100 records. Previously, it was 50 records. The component also displays clear error messages when you configure invalid specifications and supports new attributes. This component uses the GraphQL wire adapter, which enables offline use.
+              </li>
+              <li>Here’s an example to get started with the lightning-record-picker component. The component attributes provide the label for the input field, the object to search, and a callback to handle the selection of a record.</li>
+            </ul>
+            <pre style="width:1000px" data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+                  <lightning-record-picker
+                      label="Select a record"
+                      placeholder="Search..."
+                      object-api-name="Contact"
+                      value={initialValue}
+                      onchange={handleChange}></lightning-record-picker>
+                  </code></pre>
+            <img src="./assets/picker.png" alt="picker" height="170px" >     
+          </section>
+        </section>
+
+        <section>
+          <h4>
+            <a href="https://help.salesforce.com/s/articleView?id=release-notes.rn_lwc_versioning.htm&release=248&type=5" target="_blank">Lightning Web Components to API version 60.0</a>
+          </h4>
+          <section data-auto-animate>
+            <ul style="font-size: 32px;">
+              <li>To get better performance when using object spread and rest syntax (...obj). This syntax now utilizes native JavaScript APIs instead of Babel transpiling.
+              </li>
+              <li>LWC API version 60.0 corresponds to v5.0.0 in LWC open source (OSS).</li>
+            </ul>   
+          </section>
+        </section>
+
+        <section>
+          <h4>
+            <a href="https://help.salesforce.com/s/articleView?id=release-notes.rn_lc_native_shadow_dom_248.htm&release=248&type=5" target="_blank">Lightning Component Internal DOM Structure Changes</a>
+          </h4>
+          <section data-auto-animate>
+            <ul style="font-size: 32px;">
+              <li>Starting in the Spring ’24 release, a number of Lightning base components like lightning-input use the browser’s native shadow DOM instead of the synthetic shadow DOM that supported legacy browsers. 
+              </li>
+              <li> This means that component internals are now truly encapsulated. If your UI tests reference internals, they may break and need fixing.</li>
+            </ul> 
+            <pre style="width:1000px" data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+              lightning-input
+              lightning-alert
+              lightning-badge
+              lightning-modal
+              lightning-layout
+              lightning-toast
+              ...
+              </code></pre>  
+          </section>
+        </section>
+
+        <section>
+          <h4>
+            <a href="https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA" target="_blank">Additional ARIA properties</a>
+          </h4>
+          <section data-auto-animate>
+            <ul style="font-size: 32px;">
+              <li>Accessible Rich Internet Applications (ARIA) is a set of roles and attributes that define ways to make web content and web applications (especially those developed with JavaScript) more accessible to people with disabilities. 
+              </li>
+            </ul> 
+            <pre style="width:1000px" data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+              aria-braillelabel 
+              aria-brailleroledescription
+              </code></pre>  
+          </section>
+        </section>
+
+        <section>
+          <h4>
+            <a href="https://help.salesforce.com/s/articleView?id=release-notes.rn_lwc_mixed_mode_native.htm&release=248&type=5" target="_blank">Mixed Shadow Mode (Beta)</a>
+          </h4>
+          <section data-auto-animate>
+            <ul style="font-size: 32px;">
+              <li>You can now enable native shadow DOM instead of synthetic shadow for your custom LWC components using the new Mixed Shadow Mode (Beta). This feature has several important considerations when using base components. 
+              </li>
+              <li>
+                How: Use shadowSupportMode = 'native' to render your component in native shadow DOM.
+              </li>
+            </ul> 
+            <pre style="width:1000px" data-id="code-animation"><code class="js" data-trim data-line-numbers>
+              export class MyComponent extends LightningElement {
+                static shadowSupportMode = 'native';
+              }
+              </code></pre>  
+          </section>
+        </section>
+
+
+		<section>
+			<section data-auto-animate>
+			  <p
+				data-id="text-props"
+				style="
+				  background: #555;
+				  line-height: 1em;
+				  letter-spacing: 0em;
+				  margin-top: 130px;
+				"
+			  >
+			  Development environments
+			  </p>
+			</section>
+			<section data-auto-animate>
+			  <p
+				data-id="text-props"
+				style="
+				  background: #555;
+				  line-height: 2em;
+				  letter-spacing: 0.2em;
+				  margin-top: 130px;
+				"
+			  >
+			  Development environments
+			  </p>
+			</section>
+		</section>
+
+    <section>
+      <section>
+        <h3><a href="https://help.salesforce.com/s/articleView?id=release-notes.rn_dev_environments_scratch_org_snapshots.htm&release=248&type=5">New Scratch Org Snapshots (Beta)</a></h3>
+        <p>New Scratch Org Snapshots (Beta) feature lets you quickly replicate scratch orgs with required project dependencies. Manually configuring scratch orgs with packages, metadata, data, and other configurations can be time-consuming. With snapshots, you save a scratch org’s configuration and then use it to create identically-configured orgs much faster. This makes development and testing easier.</p>
+      </section>
+      <section>
+        <h4>How:</h4>
+        <p>Enable Scratch Org Snapshots in the Dev Hub org that you use to create scratch orgs. If you don't have access to the Scratch Orgs Setup page, ask your Salesforce admin for help. Then use Salesforce CLI commands to create and manage the snapshot, such as org create snapshot and org list snapshot.</p>
+      </section>
+    </section>
+
+    
+		<section>
+			<section data-auto-animate>
+			  <p
+				data-id="text-props"
+				style="
+				  background: #555;
+				  line-height: 1em;
+				  letter-spacing: 0em;
+				  margin-top: 130px;
+				"
+			  >
+			  Platform development tools
+			  </p>
+			</section>
+			<section data-auto-animate>
+			  <p
+				data-id="text-props"
+				style="
+				  background: #555;
+				  line-height: 2em;
+				  letter-spacing: 0.2em;
+				  margin-top: 130px;
+				"
+			  >
+			  Platform development tools
+			  </p>
+			</section>
+		</section>
+
+    <section>
+      <h4><a href="https://github.com/forcedotcom/cli/blob/main/releasenotes/README.md" target="_blank">Salesforce CLI</a></h4>
+      <p>The Salesforce CLI receives updates every week. Recent major improvements include:</p>
+      <ul>
+        <li>A command to toggle tracking on/off in your source files between your project and an org.</li>
+        <li>Clearer error and warning messages when using deprecated commands. The CLI now clearly flags outdated commands to make migrating to newer versions easier.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h4><a href="https://developer.salesforce.com/tools/vscode/en/einstein/einstein-example-prompts" target="_blank">Einstein for Developers (Beta) Updates</a></h4>
+      <p>Coming soon in the next few months:</p>
+      <ul>
+        <li>Test code generation – Einstein will automatically generate test classes to help you unit test code.</li>
+        <li>Inline autocomplete for LWC and Apex – Get intelligent code suggestions as you type inline comments in the VS Code</li>
+      </ul>
+    </section>
+
+    <section>
+      <section>
+        <h4><a href="https://medium.com/salesforce-architects/announcing-salesforce-scale-test-81e3f1871c72" target="_blank">Salesforce Scale Test 🤗</a></h4>
+        <p>Use metrics to plan scale tests. Book a slot on your sandbox instance calendar and test at production peak load. Compare performance data from recent tests.</p>
+        <p style="font-size: 28px;">Salesforce Scale Test lets you view the business peak hours in your production org or pick a custom date and time to view performance hotspots. When you create a test plan, you’ll see optimization opportunities from a front-end perspective like the most used and slowest pages, most used Lightning components, most used REST APIs, and most used SOAP APIs.
+
+          Use the metrics (shown below) to see how long the pages are taking to load and optimize them to reduce Experienced Page Time (EPT), which is a measure of the time it takes to download and display the entire content of a webpage in a browser window. Use Scale Test reports and metrics to proactively find issues or troubleshoot issues you’ve already learned about.<a href="https://help.salesforce.com/s/articleView?id=release-notes.rn_scale_test.htm&release=248&type=5">Plan and Test with Scale Test</a></p>
+      </section>
+      <section>
+        <p>Example:</p>
+          <img src="./assets/scale-test.png" alt="scale-test" >
+      </section>
+    </section>
+	
+        <section>
+          <section>
+            <h5><a href="https://developer.salesforce.com/tools/salesforcecli" target="_blank">Ant Migration Tool goodbye 👋 </a></h5>
+            <p>The Ant Migration Tool is being retired in the Spring ’24 release. Instead, we recommend using the Salesforce CLI for deployments and retrievals. The Salesforce CLI provides many more features compared to Ant, which focuses solely on deployments.</p>
+          </section>
+        </section>
+        
+        <section>
+          <section>
+            <h4><a href="https://developer.salesforce.com/tools/vscode/en/codebuilder/about" target="_blank">Replace Workbench, a legacy and unsupported tool 👋</a></h4>
+            <p>Workbench has been deprecated for several years and does not receive new features or bug fixes.</p>
+          <p><span style="color: rgb(6, 212, 37);">Use modern tools like Code Builder or the Salesforce CLI</span> </p>
+          <p> <a href="https://www.apexhours.com/salesforce-code-builderbeta/"> Salesforce Code Builder</a> is a modern web version of VS Code fully optimized for Salesforce development with pre-installed Salesforce extensions and Salesforce CLI. </p>
+          </section>
+        </section>
+
+        <section>
+          <section data-auto-animate>
+            <p
+            data-id="text-props"
+            style="
+              background: #555;
+              line-height: 1em;
+              letter-spacing: 0em;
+              margin-top: 130px;
+            "
+            >
+            Data Cloud highlights
+            </p>
+          </section>
+          <section data-auto-animate>
+            <p
+            data-id="text-props"
+            style="
+              background: #555;
+              line-height: 2em;
+              letter-spacing: 0.2em;
+              margin-top: 130px;
+            "
+            >
+            Data Cloud highlights
+            </p>
+          </section>
+        </section>
+
+        <section>
+          <section>
+            <p style="color: rgb(6, 154, 239);">Spring ’24 is adding important features to Data Cloud, making it possible to use tools and technology that you already know on the Salesforce Platform.</p>
+            <ul style="font-size: 28px;">
+             <li class="fragment">Einstein Studio now connects to generative AI, such as OpenAI. It also makes predictions using your custom models. <a href="https://help.salesforce.com/s/articleView?id=release-notes.rn_data_cloud_ai.htm&release=248&type=5" target="_blank">AI in Data Cloud</a></li>
+             <li class="fragment">You can now send data to the data cloud using Flows. The flow uses <a href="https://developer.salesforce.com/docs/atlas.en-us.c360a_api.meta/c360a_api/c360a_api_get_started.htm" target="_blank">Ingestion API</a> to send data to the Data Cloud.</li>
+             <li class="fragment"> <a href="https://help.salesforce.com/s/articleView?id=sf.flow_concepts_trigger_data_cloud.htm&type=5">Data Cloud-triggered flows</a>, adds the ability to easily debug them.</li>
+             <li class="fragment">You can now create a <a href="https://help.salesforce.com/s/articleView?id=release-notes.rn_cdp_2024_spring_data_graphs_ga.htm&release=248&type=5" target="_blank">data graph</a> to retrieve customer data. Data from the data graph can then be used to ground prompts that you send to the large language model (LLM) to generate better responses.</li>
+             <li class="fragment">Data Cloud now supports new data types like email, URL, phone, percent, and boolean.</li>
+             <li class="fragment">You can more easily locate and browse Salesforce Data Cloud Connect API reference <a href="https://developer.salesforce.com/docs/platform/connectapi/overview" target="_blank"> Data Cloud Connect REST API guide.</a></li>
+            </ul>
+          </section>
+        </section>
+
+        <section>
+          <section data-auto-animate>
+            <p
+            data-id="text-props"
+            style="
+              background: #555;
+              line-height: 1em;
+              letter-spacing: 0em;
+              margin-top: 130px;
+            "
+            >
+            APIs & integrations
+            </p>
+          </section>
+          <section data-auto-animate>
+            <p
+            data-id="text-props"
+            style="
+              background: #555;
+              line-height: 2em;
+              letter-spacing: 0.2em;
+              margin-top: 130px;
+            "
+            >
+            APIs & integrations
+            </p>
+          </section>
+        </section>
+
+        <section>
+          <section>
+            <h4><a href="https://help.salesforce.com/s/articleView?id=release-notes.rn_change_data_capture_new_objects.htm&release=248&type=5" target="_blank">Change Data Capture now supports additional objects</a></h4>
+          </section>
+          <section>
+            <p>You can subscribe to receive change events when data changes for any of the newly supported objects in Salesforce.</p>
+            <pre style="width:1000px" data-id="code-animation"><code class="hljs" data-trim data-line-numbers>
+              OpportunityLineItem 
+              HealthCareDiagnosis
+              ...
+              </code></pre> 
+          </section>
+        </section>
+
+        
+        <section>
+          <section>
+            <h4><a href="https://developer.salesforce.com/docs/atlas.en-us.248.0.api_meta.meta/api_meta/meta_managedeventsubscription.htm" target="_blank">Better manage event subscriptions with the Pub/Sub API (Beta)</a></h4>
+            <p>Use the configuration options via the new ManagedEventSubscription (Beta) tooling objects to automatically track the events that a subscriber client consumed and to resume a subscription from where it left off after a client disconnects.</p>
+          </section>
+        </section>
+
+        <section>
+          <section>
+            <h4>
+              <a href="https://trailhead.salesforce.com/content/learn/modules/event_monitoring?_ga=2.44221606.328758121.1705303759-1622235573.1691663016" target="_blank">Apex trigger errors from unhandled platform events now appear in Event Monitoring logs.</a>
+            </h4>
+            <p>Query the EventlogFile object for events of type ApexUnexpectedException. Note that Event Monitoring is a paid add-on that lets you monitor detailed user activity for security.</p>
+          </section>
+          <section>
+            <h5><a href="https://help.salesforce.com/s/articleView?id=release-notes.rn_api_graphql.htm&release=248&type=5">Enhancements GraphQL API</a></h5>
+             <ul>
+              <li class="fragment">Increased upper limit for retrieving records to 4000 (up from 2000)</li>
+              <li class="fragment">GraphQL fields now return localized labels instead of API names</li>
+              <li class="fragment">Name collisions between objects are avoided by appending suffixes</li>
+             </ul>
+          </section>
+        </section>
+
+        <section>
+          <h5><a href="https://help.salesforce.com/s/articleView?id=release-notes.rn_customization_ext_svcs_asynch_ops.htm&release=248&type=5">External services can now generate a typesafe Apex class with callback interfaces.</a></h5>
+           <p>Previously, External Services callouts could only be synchronous, waiting up to two minutes for an HTTP response before timing out. With callbacks, External Services can now integrate asynchronously and wait for responses for up to a year or more before timing out.</p>
+        </section>
+
+        
+        <section>
+          <h5><a href="https://help.salesforce.com/s/articleView?id=release-notes.rn_api_new_user_profile.htm&release=248&type=5">New user profile called “Minimum Access – API Only Integrations”</a></h5>
+           <p>We recommend migrating to the “Minimum Access – API Only Integrations” profile instead of using the previous “Salesforce API Only Systems Integration” profile for all your integration user requirements. The key benefit is that the new profile does not allow create, read, update, or delete (CRUD) access to custom objects.</p>
+        </section>
+
+        <section>
+          <section data-background="#dddddd">
+            <h2>Finally:</h2>
+            <a href="#" class="navigate-down">
+            </a>
+          </section>
+          <section
+            data-background-gradient="linear-gradient(to bottom, #483b95, #17b2c3)"
+          >
+          <h4>
+            <a href="https://devcenter.heroku.com/articles/using-the-salesforce-rest-api-with-heroku" target="_blank" style="color: rgb(119, 222, 134);">The enhanced Named Credentials introduced in Winter ’23 now supports</a>
+          </h4>
+          <ul>
+            <li><a href="https://help.salesforce.com/s/articleView?id=release-notes.rn_security_named_credentials_basic_auth.htm&release=248&type=5" style="color: azure;">Basic authentication</a></li>
+            <li><a href="https://help.salesforce.com/s/articleView?id=release-notes.rn_security_named_credentials_managed_packages.htm&release=248&type=5" style="color: azure;">Packaging in 2GP managed packages along with external credentials</a></li>
+            <li><a href="https://help.salesforce.com/s/articleView?id=release-notes.rn_security_named_credentials_formula_functions.htm&release=248&type=5" style="color: azure;">More formula functions</a></li>
+            <li><a href="https://help.salesforce.com/s/articleView?id=release-notes.rn_security_named_credentials_org_clone_migration.htm&release=248&type=5" style="color: azure;">Improved sandbox cloning and org migration experiences</a></li>
+          </ul>
+          </section>
+
+        <section>
+          <h2>Your question?</h2>
+        </section>
+        
+        <section>
+          <h5>Useful links</h5>
+          <ul>
+            <li><a href="https://developer.salesforce.com/blogs/2024/01/spring24-developers" target="_blank">Salesforce Developer’s Guide to the Spring ’24 Release</a></li>
+            <li><a href="https://help.salesforce.com/s/articleView?id=release-notes.salesforce_release_notes.htm&release=248&type=5" target="_blank">Salesforce Spring ’24 Release Notes Documentation</a></li>
+            <li><a href="https://vovantais.github.io/SF-Spring-24-Dev/" target="_blank">Presentation Spring-24-Dev</a></li>
+          </ul>
+        </section>
+
+        <section style="text-align: left;">
+          <h1>THE END</h1>
+          <h4>Thanks for attention</h4>
+        </section>
+
+    <script src="dist/reveal.js"></script>
+    <script src="plugin/zoom/zoom.js"></script>
+    <script src="plugin/notes/notes.js"></script>
+    <script src="plugin/search/search.js"></script>
+    <script src="plugin/markdown/markdown.js"></script>
+    <script src="plugin/highlight/highlight.js"></script>
+    <script>
+      // Also available as an ES module, see:
+      // https://revealjs.com/initialization/
+      Reveal.initialize({
+        controls: true,
+        progress: true,
+        center: true,
+        hash: true,
+
+        // Learn about plugins: https://revealjs.com/plugins/
+        plugins: [
+          RevealZoom,
+          RevealNotes,
+          RevealSearch,
+          RevealMarkdown,
+          RevealHighlight,
+        ],
+      });
+    </script>
+  </body>
+</html>
